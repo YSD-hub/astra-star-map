@@ -2,102 +2,80 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5f2fa">
-  <meta name="description" content="星序 Astra：探索太阳、月亮与上升星座，解读个人星盘、八字五行、爱情与事业灵感。">
-  <title>星序 Astra · 在星辰之间，认识自己</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="星序 Astra：个人本命星盘、上升星座、三日运势与八字五行，探索你的性格、爱情和事业方向。">
+  <title>星序 Astra · 你的本命星盘</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=2">
 </head>
 <body>
-  <div class="ambient ambient-one" aria-hidden="true"></div>
-  <div class="ambient ambient-two" aria-hidden="true"></div>
-  <header class="site-header wrap">
-    <a href="#" class="brand" aria-label="星序首页"><span class="brand-mark">✳</span><strong>星序<span>ASTRA</span></strong></a>
-    <nav aria-label="主导航"><a href="#birth-section" class="active">我的星图</a><a href="#forecast">三日运势</a><a href="#elements">五行解读</a><a href="#zodiac">十二星座</a></nav>
-    <a class="header-cta" href="#birth-section">探索自己 <span>↗</span></a>
+  <header class="app-header wrap">
+    <a class="brand" href="#natal" aria-label="星序首页"><span>✳</span><strong>星序 <small>ASTRA</small></strong></a>
+    <button id="profile-button" class="profile-button" type="button" aria-label="编辑当前出生资料"><span id="profile-title">示例星盘</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+    <button id="edit-button" class="icon-button" type="button" aria-label="编辑出生资料"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M5 19l4-1L20 7a2.8 2.8 0 0 0-4-4L5 14z"/></svg></button>
   </header>
-  <main>
-    <section class="hero wrap">
-      <div class="eyebrow"><span class="tiny-star">✦</span> A LITTLE COSMIC SELF-DISCOVERY</div>
-      <h1>把星光，读成<span class="serif-purple">你的故事</span><span class="title-star" aria-hidden="true">✧</span></h1>
-      <p class="hero-description">从浩瀚星空到东方五行，发现属于你的性格、爱与人生方向。<br>让每一次仰望，都成为更了解自己的开始。</p>
-      <div class="hero-pills"><span>✧ 个人本命星盘</span><span>☯ 八字五行解析</span><span>☼ 每日星象灵感</span></div>
-    </section>
-
-    <section class="workspace wrap" id="birth-section" aria-label="生成个人星盘">
-      <div class="birth-card card">
-        <div class="section-kicker">YOUR COSMIC BLUEPRINT</div>
-        <h2>你的故事，从此刻诞生<span class="heading-star">✧</span></h2>
-        <p class="muted card-intro">留下出生时的坐标，找到专属于你的星空。</p>
-        <form id="birth-form">
-          <label for="birth-date">出生日期 <span>公历</span></label>
-          <input id="birth-date" name="date" type="date" min="1900-01-01" max="2100-12-31" value="2000-06-15" required>
-          <div class="label-row"><label for="birth-time">出生时间</label><label class="checkbox-label"><input id="unknown-time" type="checkbox"> 时间不详</label></div>
-          <input id="birth-time" name="time" type="time" value="14:30" required>
-          <p class="field-note">准确的时间，让上升星座与宫位更清晰。</p>
-          <label for="birth-city">出生地点</label>
-          <select id="birth-city" name="city" required></select>
-          <details class="custom-location"><summary>其他城市 / 自定义经纬度 <span>+</span></summary>
-            <p class="field-note">选择最接近的城市，或填写出生地坐标与时区。</p>
-            <label class="checkbox-label"><input id="use-custom" type="checkbox"> 使用自定义地点</label>
-            <div class="field-pair"><div><label for="latitude">纬度（北纬为正）</label><input id="latitude" type="number" min="-66" max="66" step="0.0001" value="31.2304"></div><div><label for="longitude">经度（东经为正）</label><input id="longitude" type="number" min="-180" max="180" step="0.0001" value="121.4737"></div></div>
-            <label for="timezone">IANA 时区</label><input id="timezone" value="Asia/Shanghai" placeholder="例如 Asia/Shanghai" autocomplete="off">
-            <p class="field-note">支持南北纬 66° 以内；时区用于还原当地出生时间及夏令时。</p>
-          </details>
-          <button class="primary-button" type="submit">解读我的星图 <span>↗</span></button>
-          <p id="form-error" class="form-error" role="alert"></p>
-          <p class="privacy-note"><span>♧</span> 出生资料仅在你的浏览器中计算</p>
-        </form>
-      </div>
-      <div class="chart-card card" id="chart-card">
-        <div class="chart-top"><div><div class="section-kicker">THE SKY WITHIN YOU</div><h2>一张星图，无限个你</h2></div><span class="sample-label" id="sample-label">示例星盘</span></div>
-        <div id="chart" class="chart-container" aria-label="本命星盘"></div>
-        <div class="chart-big-three" id="big-three"></div>
-        <p class="chart-caption" id="chart-caption"></p>
+  <nav class="app-nav" aria-label="内容导航"><div class="nav-inner wrap" role="tablist" aria-label="星图内容">
+    <button id="tab-natal" class="main-tab active" role="tab" aria-selected="true" aria-controls="panel-natal" data-tab="natal" type="button">本命</button>
+    <button id="tab-forecast" class="main-tab" role="tab" aria-selected="false" aria-controls="panel-forecast" tabindex="-1" data-tab="forecast" type="button">运势</button>
+    <button id="tab-elements" class="main-tab" role="tab" aria-selected="false" aria-controls="panel-elements" tabindex="-1" data-tab="elements" type="button">五行</button>
+    <button id="tab-zodiac" class="main-tab" role="tab" aria-selected="false" aria-controls="panel-zodiac" tabindex="-1" data-tab="zodiac" type="button">星座</button>
+  </div></nav>
+  <main class="wrap">
+    <section id="panel-natal" class="tab-panel" role="tabpanel" aria-labelledby="tab-natal">
+      <div class="natal-layout">
+        <section id="birth-section" class="chart-card" aria-label="个人本命星盘">
+          <div class="chart-heading"><div class="heading-with-help"><h1>本命盘</h1><button id="chart-help" class="help-button" type="button" aria-label="查看星盘计算说明">?</button></div><span class="chart-system">热带黄道 <i></i> 整宫制</span></div>
+          <div class="profile-meta"><span id="sample-label" class="sample-label">示例星盘</span><span id="chart-caption"></span></div>
+          <div id="chart" class="chart-container" aria-label="本命星盘"></div>
+          <p id="planet-selection" class="planet-selection" role="status">点击星体简称，查看星座与落宫</p>
+          <div class="chart-toolbar"><button id="reading-button" class="tool-button" type="button"><span>◎</span> 基础解读</button><button id="parameters-button" class="tool-button" type="button">参数 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M12 8v12M19 12v8M4 8h16M4 14h16M4 20h16"/></svg></button></div>
+          <div class="chart-big-three" id="big-three"></div><p id="chart-time-note" class="method-inline"></p>
+        </section>
+        <div class="reading-column">
+          <section id="report" class="report-section" aria-live="polite"><div class="section-heading"><h2>基础解读</h2><span id="report-label" class="subtle-label">示例解读</span></div><div class="portrait-grid" id="portrait"></div></section>
+          <details id="planet-details" class="card parameter-details"><summary>行星位置与四轴 <span>＋</span></summary><div id="planet-positions" class="table-scroll"></div></details>
+          <details id="house-details" class="card parameter-details"><summary>十二宫与人生主题 <span>＋</span></summary><p class="method-inline">自然宫位是传统象征关联；个人宫位由上升星座起算，采用 Whole Sign（整宫制）。</p><div class="table-scroll"><table><caption class="sr-only">十二宫与星座对应</caption><thead><tr><th>宫位 / 主题</th><th>自然星座</th><th>个人宫头</th></tr></thead><tbody id="house-table"></tbody></table></div></details>
+        </div>
       </div>
     </section>
-
-    <section class="report-section wrap" id="report" aria-live="polite">
-      <div class="section-title"><div><div class="section-kicker">A PORTRAIT OF YOU</div><h2>认识你的多面宇宙 <span>✦</span></h2></div><span id="report-label" class="subtle-label">先看看一份示例解读</span></div>
-      <div class="portrait-grid" id="portrait"></div>
+    <section id="panel-forecast" class="tab-panel" role="tabpanel" aria-labelledby="tab-forecast" hidden>
+      <div class="page-heading"><div><span class="section-kicker">DAILY TRANSITS</span><h1>三日运势</h1></div><span id="forecast-range" class="date-badge"></span></div>
+      <div class="forecast-subject"><span id="forecast-subject"></span><button id="forecast-reset" class="text-button" type="button" hidden>回到我的运势</button></div>
+      <div id="forecast-tabs" class="day-tabs" role="tablist" aria-label="选择运势日期"></div><div id="forecast-cards"></div>
+      <p class="method-inline">按北京时间每日星象生成娱乐性解读。相位可能延续数日，每天的爱情与事业建议分别呈现。</p>
     </section>
-
-    <section class="forecast-section wrap" id="forecast">
-      <div class="section-title"><div><div class="section-kicker">A LITTLE GUIDANCE, DAY BY DAY</div><h2>近三日，星空来信 <span>☾</span></h2></div><div class="date-badge" id="forecast-range"></div></div>
-      <p class="section-description">以今日、明日、后天的行星相位，为生活留一点灵感。</p>
-      <div class="forecast-grid" id="forecast-cards"></div>
-      <p class="method-inline">运势文案由当日星象与太阳星座的象征规则生成，属于娱乐性解读；爱情与事业提供探索方向。</p>
+    <section id="panel-elements" class="tab-panel" role="tabpanel" aria-labelledby="tab-elements" hidden>
+      <div class="page-heading"><div><span class="section-kicker">FIVE ELEMENTS</span><h1>你的五行</h1></div><span class="page-symbol">☯</span></div><p class="section-description">从出生四柱，认识木、火、土、金、水。</p>
+      <div class="elements-layout"><section class="card elements-card"><div class="elements-card-header"><h2>五行分布</h2><span id="day-master" class="day-master"></span></div><div id="elements-chart" class="elements-chart"></div><div id="pillars" class="pillars"></div><p id="element-method" class="method-inline"></p></section><section id="element-reading" class="card element-reading"></section></div>
+      <details class="card element-overview"><summary>五种元素的完整特征 <span>＋</span></summary><div id="element-overview-content"></div></details>
     </section>
-
-    <section class="elements-section wrap" id="elements">
-      <div class="section-title"><div><div class="section-kicker">EASTERN WISDOM, YOUR INNER BALANCE</div><h2>五行之间，找到你的平衡 <span>☯</span></h2></div><span class="subtle-label">从出生四柱，读懂五种能量</span></div>
-      <div class="elements-layout"><div class="card elements-card"><div class="elements-card-header"><h3>你的五行分布</h3><span id="day-master" class="day-master"></span></div><div class="elements-chart" id="elements-chart"></div><div class="pillars" id="pillars"></div><p class="method-inline" id="element-method"></p></div><div class="card element-reading" id="element-reading"></div></div>
-      <details class="card element-overview"><summary>查看木、火、土、金、水的完整特征 <span>+</span></summary><div id="element-overview-content"></div></details>
+    <section id="panel-zodiac" class="tab-panel" role="tabpanel" aria-labelledby="tab-zodiac" hidden>
+      <div class="page-heading"><div><span class="section-kicker">TWELVE SIGNS</span><h1>十二星座</h1></div><span class="page-symbol">✧</span></div><p class="section-description">每一种性格，都有自己的光芒。</p>
+      <div id="zodiac-grid" class="zodiac-grid" role="group" aria-label="选择星座"></div><section id="zodiac-detail" class="card zodiac-detail" aria-live="polite"></section>
+      <button id="zodiac-forecast" class="primary-button zodiac-forecast" type="button">查看该星座三日运势 <span>↗</span></button>
     </section>
-
-    <section class="zodiac-section wrap" id="zodiac">
-      <div class="section-title"><div><div class="section-kicker">TWELVE SIGNS, TWELVE LITTLE WORLDS</div><h2>十二星座，各有光芒 <span>✧</span></h2></div><span class="subtle-label">点击星座，认识不同的自己</span></div>
-      <div class="zodiac-grid" id="zodiac-grid" role="group" aria-label="选择星座"></div>
-      <div class="card zodiac-detail" id="zodiac-detail" aria-live="polite"></div>
-    </section>
-
-    <section class="houses-section wrap" id="houses">
-      <div class="section-title"><div><div class="section-kicker">TWELVE HOUSES OF LIFE</div><h2>十二宫，人生的十二个切面</h2></div></div>
-      <p class="section-description">自然宫位展示传统象征关联；个人宫位采用 Whole Sign（整宫制），由你的上升星座起算。</p>
-      <div class="card table-card"><table><caption class="sr-only">十二宫与星座对应表</caption><thead><tr><th>宫位</th><th>人生主题</th><th>自然星座</th><th>你的宫头星座</th></tr></thead><tbody id="house-table"></tbody></table></div>
-    </section>
-
-    <section class="method-section wrap">
-      <div class="method-title"><span>✦</span><h2>让好奇心，有迹可循</h2></div>
-      <div class="method-grid"><details><summary>上升星座与星盘如何计算？</summary><p>采用热带黄道、地心位置。Astronomy Engine 计算行星黄经，结合出生地经纬度与恒星时计算东方地平线上的上升点。宫位使用整宫制。时间不详时，仅展示正午的参考行星位置，省略上升、宫位与时柱。</p></details><details><summary>星座、五行、天干是什么关系？</summary><p>西方占星使用火、土、风、水四元素；八字使用木、火、土、金、水五行，两套体系分别计算。十二星座与十天干没有统一的一对一对应。这里展示你出生四柱的实际天干、地支与日主属性。</p></details><details><summary>五行分布与三日运势如何解读？</summary><p>四柱由 lunar-javascript 按节气计算：年、月柱按同一出生瞬间的节气划分，日、时柱采用出生地民用时间、子正换日（00:00），未校正真太阳时。五行图按天干和地支本气计数，未计藏干与旺衰，数量少不等于喜用。运势取北京时间每日 12:00 的主要行星相位，通过固定规则生成可重复的娱乐解读。</p></details><details><summary>我的出生资料保存在哪里？</summary><p>计算在当前浏览器完成，表单不会上传到服务器，不创建账号，不使用追踪分析。点击“记住资料”才会存入此设备的 localStorage（本地存储），可随时清除。访问托管页面仍会产生 GitHub Pages 的常规访问日志。</p></details></div>
-      <div class="local-actions"><button id="remember-button" type="button">记住资料</button><button id="clear-button" type="button">清除本地资料</button><span id="storage-status" role="status"></span></div>
-    </section>
-    <noscript><p class="wrap">请开启 JavaScript，使用星盘与五行计算功能。</p></noscript>
+    <details id="methods" class="methods"><summary>计算说明与资料隐私 <span>＋</span></summary><div class="method-grid">
+      <section><h2>星盘与四轴</h2><p>采用热带黄道、地心行星位置及整宫制。升、降为地平线交点，顶、底为子午圈交点，四轴与整宫制宫头分别绘制。出生时间不详时，行星位置仅供正午参考，上升、四轴、宫位和时柱待定。</p></section>
+      <section><h2>星座、五行与天干</h2><p>西方火土风水四元素与八字木火土金水五行分别计算。十二星座与十天干没有统一的一对一对应；这里展示出生四柱的实际天干、地支及日主。</p></section>
+      <section><h2>五行与每日运势</h2><p>八字年、月柱按节气划分，日、时柱按出生地民用时间、00:00 换日，未校正真太阳时。五行按天干和地支本气计数，未计藏干与旺衰，计数不等于喜用。运势取北京时间每日 12:00 的主要相位，通过日期固定的规则文案解读。</p></section>
+      <section><h2>资料只保存在此设备</h2><p>表单仅在浏览器中计算。点击“记住资料”才写入 localStorage（本地存储），“清除本地资料”删除保存内容并恢复示例。网站无追踪分析；GitHub Pages 会处理常规访问日志。</p></section>
+    </div></details>
+    <noscript><p>请开启 JavaScript 使用星盘与五行计算功能。</p></noscript>
   </main>
-  <footer class="site-footer wrap"><a class="brand" href="#"><span class="brand-mark">✳</span><strong>星序<span>ASTRA</span></strong></a><p>星空给你灵感，人生由你书写。</p><span>用一点星光，照见自己 © <span id="year"></span></span></footer>
-  <script src="./vendor/astronomy.browser.min.js"></script>
-  <script src="./vendor/lunar.js"></script>
-  <script type="module" src="./app.mjs"></script>
+  <footer class="site-footer wrap"><span>星序 ASTRA</span><p>星空给你灵感，人生由你书写。</p><small>© <span id="year"></span></small></footer>
+  <p id="app-status" class="toast" role="status" hidden></p>
+  <dialog id="birth-dialog" class="birth-dialog" aria-labelledby="editor-title">
+    <div class="sheet-handle" aria-hidden="true"></div><header class="dialog-heading"><div><span class="section-kicker">YOUR BIRTH DETAILS</span><h2 id="editor-title">编辑出生资料</h2></div><button id="close-editor" class="icon-button" type="button" aria-label="关闭编辑面板">×</button></header>
+    <form id="birth-form" class="birth-form">
+      <label for="birth-date">出生日期 <span>公历</span></label><input id="birth-date" name="date" type="date" min="1900-01-01" max="2100-12-31" value="2000-06-15" required>
+      <div class="label-row"><label for="birth-time">出生时间</label><label class="checkbox-label"><input id="unknown-time" type="checkbox"> 时间不详</label></div><input id="birth-time" name="time" type="time" value="14:30" required><p class="field-note">准确的时间，让上升星座与宫位更清晰。</p>
+      <label for="birth-city">出生地点</label><select id="birth-city" name="city" required></select>
+      <details class="custom-location"><summary>其他城市 / 自定义经纬度 <span>＋</span></summary><p class="field-note">选择相近城市，或填写出生地的坐标和时区。</p><label class="checkbox-label"><input id="use-custom" type="checkbox"> 使用自定义地点</label><div class="field-pair"><div><label for="latitude">纬度（北纬为正）</label><input id="latitude" type="number" min="-66" max="66" step="0.0001" value="31.2304"></div><div><label for="longitude">经度（东经为正）</label><input id="longitude" type="number" min="-180" max="180" step="0.0001" value="121.4737"></div></div><label for="timezone">IANA 时区</label><input id="timezone" value="Asia/Shanghai" placeholder="例如 Asia/Shanghai" autocomplete="off"><p class="field-note">支持南北纬 66° 以内；时区用于还原当地时间及夏令时。</p></details>
+      <p id="form-error" class="form-error" role="alert"></p><button class="primary-button" type="submit">生成我的星盘 <span>↗</span></button><p class="privacy-note">资料仅在当前浏览器计算</p>
+      <div class="local-actions"><button id="remember-button" type="button">记住资料</button><button id="clear-button" type="button">清除本地资料</button></div><p id="storage-status" class="storage-status" role="status"></p>
+    </form>
+  </dialog>
+  <script src="./vendor/astronomy.browser.min.js"></script><script src="./vendor/lunar.js"></script><script type="module" src="./app.mjs?v=2"></script>
 </body>
 </html>

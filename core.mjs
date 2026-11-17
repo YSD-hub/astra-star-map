@@ -53,6 +53,16 @@ export function ascendant(date, latitude, longitude) {
   return normalize(degrees(Math.atan2(-Math.cos(sidereal), Math.sin(sidereal) * Math.cos(obliquity) + Math.tan(radians(latitude)) * Math.sin(obliquity))) + 180);
 }
 
+export function chartAngles(date, latitude, longitude) {
+  const centuries = (date.getTime() / 86400000 + 2440587.5 - 2451545) / 36525;
+  const obliquity = radians(23.439291 - 0.0130042 * centuries);
+  const sidereal = radians(normalize(globalThis.Astronomy.SiderealTime(date) * 15 + longitude));
+  const asc = ascendant(date, latitude, longitude);
+  // 中天的赤经等于当地恒星时；它与整宫制第十宫宫头分别展示。
+  const mc = normalize(degrees(Math.atan2(Math.sin(sidereal),Math.cos(sidereal)*Math.cos(obliquity))));
+  return {asc,dsc:normalize(asc+180),mc,ic:normalize(mc+180)};
+}
+
 export function calculateFiveElements(dateText, timeText, unknownTime, instant = null) {
   if (!globalThis.Solar) throw new Error('历法文件尚未加载，请刷新页面重试。');
   const [year, month, day] = dateText.split('-').map(Number);
@@ -82,28 +92,52 @@ export function calculateChart(input) {
   const time = input.unknownTime ? '12:00' : input.time;
   const date = localToUtc(input.date, time, input.timezone);
   if (date.getTime() > Date.now()) throw new Error('出生时间晚于现在，请核对日期。');
-  const rising = input.unknownTime ? null : ascendant(date, latitude, longitude);
+  const angles = input.unknownTime ? null : chartAngles(date, latitude, longitude);
+  const rising = angles?.asc ?? null;
   const planets = planetDefinitions.map(([body, name, symbol]) => {
     const position = planetLongitude(body, date);
     return {body,name,symbol,longitude:position,sign:signIndex(position),house:rising === null ? null : (signIndex(position) - signIndex(rising) + 12) % 12 + 1};
   });
-  return {input:{...input,latitude,longitude},date,rising,planets,sun:planets[0],moon:planets[1],five:calculateFiveElements(input.date,time,input.unknownTime,date)};
+  return {input:{...input,latitude,longitude},date,rising,angles,planets,sun:planets[0],moon:planets[1],five:calculateFiveElements(input.date,time,input.unknownTime,date)};
 }
 
 const aspectRules = [
-  {angle:0,name:'合相',title:'把注意力放回当下',summary:'能量聚焦在熟悉的主题。选一件真正重要的事，投入一点完整的时间。',love:'把在意说得具体，一段认真倾听的对话能拉近彼此。',career:'集中完成一个关键任务，为想法留下可见的进展。'},
-  {angle:60,name:'六合',title:'给新的可能留一扇门',summary:'适合用轻盈的尝试打破惯性。一次主动的交流，或许会带来新的视角。',love:'分享一个日常的小发现，让交流自然发生。',career:'适合学习、交流或向同伴请教，把新方法用于一件小事。'},
-  {angle:90,name:'四分相',title:'慢一步，也能走得更稳',summary:'不同的需求可能同时出现。先分清优先级，给调整留出一点余地。',love:'先核对彼此的理解，暂缓在情绪上升时作结论。',career:'检查任务边界与时间安排，分步推进会更轻松。'},
-  {angle:120,name:'三分相',title:'顺着你的节奏向前',summary:'适合发挥熟悉的优势。让有把握的小行动，为你积累一些信心。',love:'用自然的陪伴表达喜欢，给关系一点舒适的共同时间。',career:'整理已有的积累，把擅长的事推进到下一步。'},
-  {angle:180,name:'对分相',title:'在不同声音间找到平衡',summary:'自己的期待与外部节奏值得一起看见。听完另一种观点，再选择方向。',love:'为彼此的需要各留一个位置，用协商代替猜测。',career:'适合对齐合作预期，把责任、期限和交付说清楚。'},
+  {angle:0,name:'合相'},{angle:60,name:'六合'},{angle:90,name:'四分相'},
+  {angle:120,name:'三分相'},{angle:180,name:'对分相'},
 ];
 
-const dailyVariations = {
-  0:[['把注意力放回当下','让重要的对话发生','把专注沉淀为进展'],['选一件重要的事，给它一段完整的时间。','把近期反复想到的事情说出来，听听另一个视角。','回顾这几天的投入，让收获落在一个具体的行动上。']],
-  60:[['给新的可能留一扇门','让交流带来新视角','把小机会变成下一步'],['用一次轻盈的尝试打破惯性，留意身边的小机会。','和信任的人交换想法，给好奇心一点回应。','挑选一个值得继续的尝试，让机会慢慢生长。']],
-  90:[['慢一步，也能走得更稳','把复杂的事拆小一点','为调整留一点空间'],['不同的需求同时出现时，先分清优先级。','遇到卡住的事情，先核对信息，再拆成小步骤。','适合复盘任务边界，保留有效的方法，调整其余部分。']],
-  120:[['顺着你的节奏向前','让擅长的事开出花来','把顺手的方法留下来'],['发挥熟悉的优势，用一个有把握的小行动积累信心。','把精力交给擅长的事，也分享一点你的经验。','整理最近顺利的进展，让好的节奏延续到日常。']],
-  180:[['在不同声音间找到平衡','为彼此的期待留个位置','把共识化为具体行动'],['把自己的期待与外部的节奏一起看见，再选择方向。','听完另一种观点，重新对齐关系与合作中的需要。','把讨论里的共识写清楚，让分工与边界更明朗。']],
+// 每个变体包含完整解读，避免爱情、事业遗漏更新；实际日期决定变体，滚动窗口不影响同一天的内容。
+const dailyReadings = {
+  0:[
+    {title:'把注意力放回当下',summary:'能量聚焦在重要的主题，适合认真投入一件事。',love:'放下手机，给对方一段完整的倾听时间，说清楚此刻最在意的感受。',career:'选出一个关键任务，集中精力先完成可交付的部分。'},
+    {title:'让重要的对话发生',summary:'内心反复出现的想法，值得被清楚地表达。',love:'找一个舒服的时机，谈谈对关系的期待，也问问对方的真实需要。',career:'主动对齐项目目标，把含糊的要求整理成具体清单。'},
+    {title:'把专注沉淀为进展',summary:'给投入留下一个落点，让想法成为可见的成果。',love:'用一件实际的小事兑现关心，让承诺变成对方看得见的行动。',career:'回看手头工作的进度，提交一个阶段成果，再安排下一步。'},
+  ],
+  60:[
+    {title:'给新的可能留一扇门',summary:'轻盈的小尝试，能给熟悉的生活带来新的入口。',love:'分享一个日常的小发现，或主动发出一次轻松的邀约。',career:'尝试一个新工具或工作方法，用小任务检验它是否合适。'},
+    {title:'让交流带来新视角',summary:'想法在交换中变得丰富，留意别人带来的启发。',love:'一起聊聊最近感兴趣的事，给彼此提一个真诚而开放的问题。',career:'向有经验的同伴请教一个具体问题，记录可借鉴的方法。'},
+    {title:'把小机会变成下一步',summary:'挑选一个值得继续的尝试，让机会慢慢生长。',love:'延续一次愉快的交流，为共同的兴趣安排一个小计划。',career:'从最近收集的建议中选出一项，确定负责人、时间和第一步。'},
+  ],
+  90:[
+    {title:'慢一步，也能走得更稳',summary:'不同的需要可能同时出现，先分清优先级。',love:'情绪上来时先停一停，核对彼此的意思，再讨论具体问题。',career:'检查任务边界与剩余时间，暂缓承接超出精力的新事项。'},
+    {title:'把复杂的事拆小一点',summary:'遇到卡住的地方，先找一个可以松动的小环节。',love:'把笼统的不满换成一个具体请求，让对方知道怎样回应你。',career:'把困难任务分成几个步骤，先解决最清楚、最容易验证的一步。'},
+    {title:'为调整留一点空间',summary:'允许方法发生变化，适度调整有助于继续前进。',love:'给彼此一些独处与整理感受的时间，再约定重新沟通的时机。',career:'复盘造成返工的环节，修订安排，并为意外留出时间余量。'},
+  ],
+  120:[
+    {title:'顺着你的节奏向前',summary:'发挥熟悉的优势，用有把握的小行动积累信心。',love:'安排一段舒适的共同时间，用自然的陪伴表达喜欢。',career:'先推进自己擅长的工作，完成一个清晰的小目标。'},
+    {title:'让擅长的事开出花来',summary:'把经验拿出来交流，也看见身边人的长处。',love:'具体地说出一件你欣赏对方的事，让肯定落在真实细节上。',career:'向同伴分享一个有效的方法，尝试用协作放大已有优势。'},
+    {title:'把顺手的方法留下来',summary:'整理最近顺利的进展，让好的节奏延续到日常。',love:'回想一次让彼此开心的相处，把它变成可以重复的小约定。',career:'将有效的步骤整理成笔记或模板，为下一次工作节省精力。'},
+  ],
+  180:[
+    {title:'在不同声音间找到平衡',summary:'把自己的期待与外部的节奏一起看见，再选择方向。',love:'先听完对方的立场，再表达自己的需要，避免急于分出对错。',career:'与合作方核对目标和分工，找出双方优先级不同的地方。'},
+    {title:'为彼此的期待留个位置',summary:'差异值得被讨论，也可以成为重新理解彼此的机会。',love:'商量一项双方都能接受的安排，为各自的空间保留余地。',career:'遇到意见分歧时列出共同目标，提出一个可验证的折中方案。'},
+    {title:'把共识化为具体行动',summary:'让讨论落在明确的约定上，边界清晰才能从容协作。',love:'把已经说好的事情具体化，确认时间、方式与彼此的期待。',career:'记录讨论结论，明确责任、期限和交付标准，减少反复确认。'},
+  ],
+  quiet:[
+    {title:'把日常过成喜欢的样子',summary:'当天没有紧密的主要相位，适合按自己的步调安排生活。',love:'主动问候，留出一段不被打断的交流时间。',career:'选定一件关键任务，合理分配精力与休息时间。'},
+    {title:'为好奇心留一点空间',summary:'尝试一种新的表达或学习方式，把注意力放在可掌握的事情上。',love:'一起尝试一件轻松的小事，让相处多一点新鲜感。',career:'整理一个新想法，先验证最小的下一步。'},
+    {title:'把积累化成小小进展',summary:'回看近期的感受，给有效的方法一次继续的机会。',love:'表达感谢，照顾好关系里那些平常的小细节。',career:'复盘一次进展，为接下来安排清晰的优先级。'},
+  ],
 };
 
 export function threeDayForecast(sunLongitude, now = new Date()) {
@@ -117,13 +151,9 @@ export function threeDayForecast(sunLongitude, now = new Date()) {
     }).sort((first, second) => first.orb - second.orb);
     const closest = candidates[0];
     const exact = closest.orb <= 6;
-    const fallback = {
-      title:['把今天过成喜欢的样子','为好奇心留一点空间','把积累化成小小进展'][index],
-      summary:['没有紧密的主要相位时，不妨按自己的步调安排一天。让日常的小选择带来安定。','尝试一种新的表达或学习方式，把注意力放在可掌握的事情上。','回看这几天的感受，给有效的方法一次继续的机会。'][index],
-      love:['主动问候，留出一段不被打断的交流时间。','一起尝试一件轻松的小事，让相处多一点新鲜感。','表达感谢，照顾好关系里那些平常的小细节。'][index],
-      career:['选定一件关键任务，合理分配精力。','整理一个新想法，先验证最小的下一步。','复盘一次进展，为接下来安排清晰的优先级。'][index],
-    };
-    const reading = exact ? {...closest,title:dailyVariations[closest.angle][0][index],summary:dailyVariations[closest.angle][1][index]} : fallback;
+    const dayNumber = Math.floor((date.getTime()+8*3600000)/86400000);
+    const variant = dailyReadings[exact ? closest.angle : 'quiet'][dayNumber%3];
+    const reading = exact ? {...closest,...variant} : variant;
     return {date,...reading,aspect:exact ? `${planetDefinitions.find(planet => planet[0] === closest.body)[1]}与本命太阳${closest.name} · 容许度 ${closest.orb.toFixed(1)}°` : '当天未检出 6° 内的主要相位 · 日常灵感',sign:signs[signIndex(sunLongitude)].name};
   });
 }

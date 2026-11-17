@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { calculateChart, localToUtc, calculateFiveElements, threeDayForecast, ascendant, angularDistance, signIndex, degreeLabel } from './core.mjs';
+import { calculateChart, localToUtc, calculateFiveElements, threeDayForecast, ascendant, chartAngles, angularDistance, signIndex, degreeLabel } from './core.mjs';
+import { layoutPlanetLabels } from './wheel.mjs';
 
 // 在隔离上下文载入与网页相同的浏览器版本，避免测试另一套依赖。
 const context = vm.createContext({Date,console});
@@ -27,6 +28,7 @@ assert.equal(Object.values(chart.five.counts).reduce((sum,value)=>sum+value,0),8
 assert.ok(chart.planets.every(planet=>Number.isFinite(planet.longitude)&&planet.longitude>=0&&planet.longitude<360&&planet.house>=1&&planet.house<=12));
 const unknown = calculateChart({...input,unknownTime:true,time:''});
 assert.equal(unknown.rising,null);
+assert.equal(unknown.angles,null);
 assert.ok(unknown.planets.every(planet=>planet.house===null));
 assert.equal(unknown.five.columns[3].value,'待定');
 assert.equal(Object.values(unknown.five.counts).reduce((sum,value)=>sum+value,0),6);
@@ -46,6 +48,12 @@ for (const [dateText,latitude,longitude] of [['2000-06-15T06:30:00Z',31.2304,121
   const horizon = Astronomy.Horizon(date,observer,ra,dec);
   assert.ok(Math.abs(horizon.altitude)<.04,`上升点高度异常: ${horizon.altitude}`);
   assert.ok(horizon.azimuth>0&&horizon.azimuth<180,`上升点未位于东方: ${horizon.azimuth}`);
+  const axes=chartAngles(date,latitude,longitude);
+  assert.ok(Math.abs(angularDistance(axes.asc,axes.dsc)-180)<1e-8);
+  assert.ok(Math.abs(angularDistance(axes.mc,axes.ic)-180)<1e-8);
+  const mcRadians=axes.mc*Math.PI/180;
+  const mcRa=((Math.atan2(Math.sin(mcRadians)*Math.cos(tiltRadians),Math.cos(mcRadians))*180/Math.PI+360)%360);
+  assert.ok(angularDistance(mcRa,(Astronomy.SiderealTime(date)*15+longitude+360)%360)<1e-8,'中天须位于当地子午圈');
 }
 
 // 立春前后的年柱应以节气切换，23:00 的日柱使用子正换日。
@@ -66,5 +74,36 @@ assert.deepEqual(forecast,threeDayForecast(chart.sun.longitude,new Date('2026-11
 assert.equal(angularDistance(359,1),2);
 assert.equal(signIndex(360),0);
 assert.equal(degreeLabel(29.999999),'29°59′');
-console.log('PASS：时区、夏令时、边界日期、上升地平线、10 颗行星、整宫制、立春、子正换日、时间不详及三日跨日更新。');
+
+// 重现旧版金星相位连续三天的案例，四类文案都必须分别生成。
+const repeatedAspect=threeDayForecast(chart.sun.longitude,new Date('2026-11-17T12:00:00+08:00'));
+assert.ok(repeatedAspect.every(day=>day.angle===120&&day.body==='Venus'));
+for(const field of ['title','summary','love','career']) assert.equal(new Set(repeatedAspect.map(day=>day[field])).size,3,`连续三日 ${field} 重复`);
+const tomorrowWindow=threeDayForecast(chart.sun.longitude,new Date('2026-11-18T12:00:00+08:00'));
+assert.deepEqual(repeatedAspect[1],tomorrowWindow[0],'同一实际日期不应随窗口位置变化');
+
+// 隔离星历，只控制行星黄经，覆盖五类持续相位及无紧密相位。
+const originalAstronomy=globalThis.Astronomy;
+try{
+  for(const angle of [0,60,90,120,180,null]){
+    const position=angle===null?25:angle===180?179.5:angle+.5;
+    globalThis.Astronomy={...originalAstronomy,EclipticGeoMoon:()=>({lon:position}),GeoVector:()=>null,Ecliptic:()=>({elon:position})};
+    const days=threeDayForecast(0,new Date('2026-11-17T12:00:00+08:00'));
+    for(const field of ['title','summary','love','career']) assert.equal(new Set(days.map(day=>day[field])).size,3);
+    assert.deepEqual(days[1],threeDayForecast(0,new Date('2026-11-18T12:00:00+08:00'))[0]);
+    assert.ok(days.every(day=>angle===null?day.aspect.includes('未检出'):day.angle===angle));
+  }
+  globalThis.Astronomy={...originalAstronomy,EclipticGeoMoon:date=>({lon:[.5,90.5,179.5][new Date(date).getUTCDate()-17]}),GeoVector:()=>null,Ecliptic:()=>({elon:25})};
+  assert.deepEqual(threeDayForecast(0,new Date('2026-11-17T12:00:00+08:00')).map(day=>day.angle),[0,90,180]);
+}finally{globalThis.Astronomy=originalAstronomy;}
+
+for(const positions of [chart.planets.map(planet=>planet.longitude),[359,1,0,2,358,4,355,6,3,7],Array(10).fill(0)]){
+  const labels=layoutPlanetLabels(positions,0,[{x:66,y:240},{x:414,y:240},{x:240,y:66},{x:240,y:414}]);
+  labels.forEach((label,index)=>{
+    assert.equal(label.longitude,positions[index]);
+    assert.ok(Math.abs(Math.hypot(label.dotX-240,label.dotY-240)-145)<1e-8,'行星真实点位被移动');
+    for(const other of labels.slice(index+1)) assert.ok(Math.hypot(label.x-other.x,label.y-other.y)>=27,'星盘文字重叠');
+  });
+}
+console.log('PASS：原有历法与星盘、真实四轴、三日完整文案去重、日期稳定、五类相位/无相位、跨日、星盘密集与零点标签避让。');
 console.log('示例结果',JSON.stringify({sun:chart.sun.sign,moon:chart.moon.sign,rising:chart.rising,five:chart.five.columns}));
